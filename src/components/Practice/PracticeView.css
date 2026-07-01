@@ -1,0 +1,334 @@
+/* ── Start Screen ── */
+.practice-start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4rem 1rem;
+  gap: 0.75rem;
+}
+
+.practice-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.practice-desc {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn-start {
+  font-size: 1rem;
+  padding: 0.75rem 2rem;
+}
+
+/* ── Active Practice ── */
+.practice-active {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.practice-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.practice-rotation-name {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.btn-cancel {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.btn-cancel:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* ── Progress Bar ── */
+.progress-bar {
+  height: 4px;
+  background: var(--surface);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ── Step Display ── */
+.step-display {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.step-counter {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.step-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+
+/* ── Action Badge ── */
+.action-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  min-width: 7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  position: relative;
+}
+
+.action-badge.completed {
+  border-color: var(--success);
+  background: rgba(63, 185, 80, 0.06);
+}
+
+.action-badge.hit-flash {
+  border-color: var(--success);
+  background: rgba(63, 185, 80, 0.12);
+  box-shadow: 0 0 0 2px rgba(63, 185, 80, 0.2);
+  animation: hitPulse 0.25s ease-out;
+}
+
+.action-badge.miss-flash {
+  border-color: var(--danger);
+  background: rgba(248, 81, 73, 0.08);
+  box-shadow: 0 0 0 2px rgba(248, 81, 73, 0.15);
+  animation: missShake 0.2s ease-out;
+}
+
+.badge-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+.badge-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.badge-key {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  font-family: ui-monospace, 'SF Mono', monospace;
+}
+
+.badge-check {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--success);
+}
+
+@keyframes hitPulse {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes missShake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+
+/* ── Results Screen ── */
+.results-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 1rem;
+  gap: 0.5rem;
+}
+
+.results-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.results-rotation {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.results-grid {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.result-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.results-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* ── Most Missed Actions ── */
+.most-missed {
+  width: 100%;
+  max-width: 24rem;
+  margin-bottom: 1em;
+}
+
+.most-missed-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.most-missed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.most-missed-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0.5rem;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--surface);
+  font-size: 0.8125rem;
+}
+
+.most-missed-count {
+  color: var(--warning);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Unbound / No Bindings ── */
+.no-bindings-notice {
+  background: rgba(210, 153, 34, 0.08);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--warning);
+}
+
+.no-bindings-hint {
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+}
+
+.link-like {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: default;
+}
+
+.unbound-warning {
+  font-size: 0.8125rem;
+  color: var(--warning);
+  margin-bottom: 0.25rem;
+}
+
+/* ── Shared Buttons ── */
+.btn-primary {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.btn-primary:hover {
+  opacity: 0.85;
+}
+
+.btn-secondary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.btn-secondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
