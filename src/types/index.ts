@@ -2,8 +2,14 @@ export type ActionCategory =
   | 'ranged:basic'
   | 'ranged:threshold'
   | 'ranged:ultimate'
-  | 'eof'
-  | 'special'
+  | 'ranged:utility'
+  | 'constitution:basic'
+  | 'constitution:threshold'
+  | 'constitution:special'
+  | 'constitution:ultimate'
+  | 'defence:basic'
+  | 'defence:threshold'
+  | 'defence:ultimate'
   | 'prayer';
 
 export interface Keybind {
@@ -26,6 +32,7 @@ export interface ActionDefinition {
 export interface RotationStep {
   step: number;
   actions: string[];
+  targetTimeMs: number;
 }
 
 export interface Rotation {
@@ -34,22 +41,35 @@ export interface Rotation {
   steps: RotationStep[];
 }
 
-export interface ActionResult {
+export type ActionQuality = 'instant' | 'perfect' | 'early';
+
+export interface TimedAction {
   actionId: string;
-  hit: boolean;
+  pressTimeMs: number;
+  offsetMs: number;
+  quality: ActionQuality;
 }
 
-export interface StepResult {
-  step: number;
-  actions: ActionResult[];
-  extraMisses: number;
+export interface PrayerConfig {
+  enabledIds: string[];
+  checkIntervalTicks: number;
 }
 
-export interface PracticeSession {
+export interface PrayerCheckEvent {
+  targetTimeMs: number;
+  requiredPrayerId: string;
+  state: 'pending' | 'hit' | 'missed';
+}
+
+export interface TimedSession {
   rotationId: string;
   date: string;
-  stepResults: StepResult[];
-  completed: boolean;
+  completed: TimedAction[];
+  missed: string[];
+  wrongPresses: number;
+  prayerHits?: number;
+  prayerMisses?: number;
+  prayerChecks?: PrayerCheckEvent[];
 }
 
 export interface StoredKeybinds {
@@ -58,6 +78,6 @@ export interface StoredKeybinds {
 }
 
 export interface StoredSessions {
-  version: 1;
-  sessions: PracticeSession[];
+  version: 2;
+  sessions: TimedSession[];
 }

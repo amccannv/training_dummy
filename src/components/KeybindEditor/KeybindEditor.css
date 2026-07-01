@@ -88,6 +88,10 @@
   gap: 0.5rem;
 }
 
+.keyboard-wrapper {
+  margin-top: 1.5rem;
+}
+
 .action-icon {
   width: 26px;
   height: 26px;
