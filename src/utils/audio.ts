@@ -64,3 +64,13 @@ export function playCompleteSound(): void {
     /* audio not available */
   }
 }
+
+export function playAbilitySound(soundUrl: string): void {
+  try {
+    const a = new Audio(soundUrl);
+    a.volume = 0.25;
+    a.play().catch(() => {});
+  } catch {
+    /* audio not available */
+  }
+}

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { ActionCategory, Keybind } from '../../types';
 import { actions } from '../../data/actions';
 import { useKeybindStore } from '../../store/keybindStore';
@@ -8,34 +8,68 @@ import Keyboard, { type KeyBindingInfo } from '../shared/Keyboard';
 import './KeybindEditor.css';
 
 const CATEGORY_ORDER: ActionCategory[] = [
-  'ranged:basic',
-  'ranged:threshold',
-  'ranged:ultimate',
-  'ranged:utility',
-  'constitution:basic',
-  'constitution:threshold',
-  'constitution:special',
-  'constitution:ultimate',
-  'defence:basic',
-  'defence:threshold',
-  'defence:ultimate',
-  'prayer',
+  'magic:basic', 'magic:threshold', 'magic:ultimate',
+  'ranged:basic', 'ranged:threshold', 'ranged:ultimate',
+  'melee:basic', 'melee:threshold', 'melee:ultimate',
+  'necro:basic', 'necro:threshold', 'necro:ultimate',
+  'constitution:basic', 'constitution:threshold', 'constitution:special', 'constitution:ultimate',
+  'defence:basic', 'defence:threshold', 'defence:ultimate',
+  'utility', 'prayer',
 ];
 
 const CATEGORY_LABELS: Record<ActionCategory, string> = {
-  'ranged:basic': 'Ranged Basic',
-  'ranged:threshold': 'Ranged Threshold',
-  'ranged:ultimate': 'Ranged Ultimate',
-  'ranged:utility': 'Ranged Utility',
-  'constitution:basic': 'Constitution Basic',
-  'constitution:threshold': 'Constitution Threshold',
-  'constitution:special': 'Constitution Special',
-  'constitution:ultimate': 'Constitution Ultimate',
-  'defence:basic': 'Defence Basic',
-  'defence:threshold': 'Defence Threshold',
-  'defence:ultimate': 'Defence Ultimate',
-  'prayer': 'Overhead Prayers',
+  'magic:basic': 'Basic',
+  'magic:threshold': 'Threshold',
+  'magic:ultimate': 'Ultimate',
+  'ranged:basic': 'Basic',
+  'ranged:threshold': 'Threshold',
+  'ranged:ultimate': 'Ultimate',
+  'melee:basic': 'Basic',
+  'melee:threshold': 'Threshold',
+  'melee:ultimate': 'Ultimate',
+  'necro:basic': 'Basic',
+  'necro:threshold': 'Threshold',
+  'necro:ultimate': 'Ultimate',
+  'constitution:basic': 'Basic',
+  'constitution:threshold': 'Threshold',
+  'constitution:special': 'Special',
+  'constitution:ultimate': 'Ultimate',
+  'defence:basic': 'Basic',
+  'defence:threshold': 'Threshold',
+  'defence:ultimate': 'Ultimate',
+  'utility': 'Utility',
+  'prayer': 'Prayers',
 };
+
+interface StyleGroup {
+  label: string;
+  categories: ActionCategory[];
+}
+
+const TOP_GROUPS: StyleGroup[] = [
+  { label: 'Magic', categories: ['magic:basic', 'magic:threshold', 'magic:ultimate'] },
+  { label: 'Ranged', categories: ['ranged:basic', 'ranged:threshold', 'ranged:ultimate'] },
+  { label: 'Melee', categories: ['melee:basic', 'melee:threshold', 'melee:ultimate'] },
+  { label: 'Necromancy', categories: ['necro:basic', 'necro:threshold', 'necro:ultimate'] },
+];
+
+const BOTTOM_GROUPS: StyleGroup[] = [
+  { label: 'Constitution', categories: ['constitution:basic', 'constitution:threshold', 'constitution:special', 'constitution:ultimate'] },
+  { label: 'Defensives', categories: ['defence:basic', 'defence:threshold', 'defence:ultimate'] },
+  { label: 'Prayers', categories: ['prayer'] },
+  { label: 'Utility', categories: ['utility'] },
+];
+
+const COLLAPSE_STORAGE_KEY = 'rs3-editor-sections';
+
+function loadCollapsed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_STORAGE_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set<string>();
+  } catch {
+    return new Set<string>();
+  }
+}
 
 function groupByCategory() {
   const groups: Map<ActionCategory, typeof actions> = new Map();
@@ -51,10 +85,24 @@ function groupByCategory() {
 
 export default function KeybindEditor() {
   const groups = useMemo(() => groupByCategory(), []);
+  const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsed);
   const clearAll = useKeybindStore((s) => s.clearAll);
   const bindings = useKeybindStore((s) => s.bindings);
   const setBinding = useKeybindStore((s) => s.setBinding);
   const { capturingActionId, conflict, startCapture, activeModifierCode, pressedKeys } = useKeybindCapture();
+
+  useEffect(() => {
+    localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify([...collapsed]));
+  }, [collapsed]);
+
+  const toggleCollapse = (key: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const keyMap = useMemo(() => {
     const map = new Map<string, KeyBindingInfo[]>();
@@ -87,6 +135,46 @@ export default function KeybindEditor() {
     setBinding(capturingActionId, keybind);
   };
 
+  const renderCategorySection = (category: ActionCategory) => {
+    const categoryActions = groups.get(category);
+    if (!categoryActions || categoryActions.length === 0) return null;
+    const isCollapsed = collapsed.has(category);
+
+    return (
+      <div key={category} className="category-section">
+        <button
+          className="category-toggle"
+          onClick={() => toggleCollapse(category)}
+          type="button"
+        >
+          <span className="category-arrow">{isCollapsed ? '\u25B6' : '\u25BC'}</span>
+          <span className="category-label">{CATEGORY_LABELS[category]}</span>
+          <span className="category-count">{categoryActions.length}</span>
+        </button>
+        {!isCollapsed && (
+          <div className="category-actions">
+            {categoryActions.map((action) => (
+              <ActionRow
+                key={action.id}
+                action={action}
+                isCapturing={capturingActionId === action.id}
+                conflict={conflict}
+                onStartCapture={startCapture}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderStyleColumn = (group: StyleGroup) => (
+    <div key={group.label} className="style-column">
+      <div className="style-heading">{group.label}</div>
+      {group.categories.map((cat) => renderCategorySection(cat))}
+    </div>
+  );
+
   return (
     <div className="keybind-editor">
       <div className="editor-header">
@@ -96,27 +184,14 @@ export default function KeybindEditor() {
         </button>
       </div>
 
-      {CATEGORY_ORDER.map((category) => {
-        const categoryActions = groups.get(category);
-        if (!categoryActions || categoryActions.length === 0) return null;
-
-        return (
-          <section key={category} className="category-section">
-            <h3 className="category-heading">{CATEGORY_LABELS[category]}</h3>
-            <div className="category-actions">
-              {categoryActions.map((action) => (
-                <ActionRow
-                  key={action.id}
-                  action={action}
-                  isCapturing={capturingActionId === action.id}
-                  conflict={conflict}
-                  onStartCapture={startCapture}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      <div className="editor-grid">
+        <div className="editor-top-row">
+          {TOP_GROUPS.map((group) => renderStyleColumn(group))}
+        </div>
+        <div className="editor-bottom-row">
+          {BOTTOM_GROUPS.map((group) => renderStyleColumn(group))}
+        </div>
+      </div>
 
       <div className="keyboard-wrapper">
         <Keyboard
@@ -128,6 +203,7 @@ export default function KeybindEditor() {
           interactive={true}
           onKeyClick={handleKeyClick}
           activeModifierCode={activeModifierCode}
+          unit={52}
         />
       </div>
     </div>

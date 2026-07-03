@@ -1,16 +1,11 @@
 export type ActionCategory =
-  | 'ranged:basic'
-  | 'ranged:threshold'
-  | 'ranged:ultimate'
-  | 'ranged:utility'
-  | 'constitution:basic'
-  | 'constitution:threshold'
-  | 'constitution:special'
-  | 'constitution:ultimate'
-  | 'defence:basic'
-  | 'defence:threshold'
-  | 'defence:ultimate'
-  | 'prayer';
+  | 'magic:basic' | 'magic:threshold' | 'magic:ultimate'
+  | 'melee:basic' | 'melee:threshold' | 'melee:ultimate'
+  | 'necro:basic' | 'necro:threshold' | 'necro:ultimate'
+  | 'ranged:basic' | 'ranged:threshold' | 'ranged:ultimate'
+  | 'constitution:basic' | 'constitution:threshold' | 'constitution:special' | 'constitution:ultimate'
+  | 'defence:basic' | 'defence:threshold' | 'defence:ultimate'
+  | 'utility' | 'prayer';
 
 export interface Keybind {
   code: string;
@@ -27,49 +22,75 @@ export interface ActionDefinition {
   durationTicks: number;
   isChanneled: boolean;
   iconUrl?: string;
-}
-
-export interface RotationStep {
-  step: number;
-  actions: string[];
-  targetTimeMs: number;
+  soundUrl?: string;
 }
 
 export interface Rotation {
   id: string;
   name: string;
-  steps: RotationStep[];
+  abilities: string[];
 }
 
-export type ActionQuality = 'instant' | 'perfect' | 'early';
-
-export interface TimedAction {
-  actionId: string;
-  pressTimeMs: number;
-  offsetMs: number;
-  quality: ActionQuality;
+export interface TickEvent {
+  tick: number;
+  abilityId: string;
+  resolved: boolean;
+  result?: 'hit' | 'miss';
+  duration: number;
+  gcdEndTick: number;
 }
 
-export interface PrayerConfig {
-  enabledIds: string[];
-  checkIntervalTicks: number;
-}
-
-export interface PrayerCheckEvent {
-  targetTimeMs: number;
-  requiredPrayerId: string;
-  state: 'pending' | 'hit' | 'missed';
+// Shelved — for future prayers/supplemental support
+export interface ActivationEvent {
+  tick: number;
+  primary: string;
+  supplemental: string[];
+  resolved: boolean;
+  result?: 'hit' | 'miss';
+  duration: number;
+  gcdEndTick: number;
 }
 
 export interface TimedSession {
   rotationId: string;
   date: string;
-  completed: TimedAction[];
-  missed: string[];
+  hits: number;
+  misses: number;
   wrongPresses: number;
-  prayerHits?: number;
-  prayerMisses?: number;
-  prayerChecks?: PrayerCheckEvent[];
+  events: Array<{
+    actionId: string;
+    tick: number;
+    result: 'hit' | 'miss';
+  }>;
+  prayerStats?: PrayerSessionStats;
+}
+
+export type AttackStyle = 'melee' | 'magic' | 'ranged' | 'necromancy';
+
+export interface PrayerFlickSettings {
+  enabled: boolean;
+  attackRate: number;
+  telegraphTicks: number;
+  styles: AttackStyle[];
+}
+
+export interface PrayerAttack {
+  tick: number;
+  style: AttackStyle;
+  resolved: boolean;
+  result?: 'hit' | 'miss';
+}
+
+export interface PrayerSessionStats {
+  hits: number;
+  misses: number;
+  ssUptimeTicks: number;
+  totalTicks: number;
+  attacks: Array<{
+    tick: number;
+    style: AttackStyle;
+    result: 'hit' | 'miss';
+  }>;
 }
 
 export interface StoredKeybinds {

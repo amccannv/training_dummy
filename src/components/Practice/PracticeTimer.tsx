@@ -11,7 +11,7 @@ export default function PracticeTimer({ startTimeMs, totalMs }: PracticeTimerPro
   useEffect(() => {
     let raf: number;
     const tick = () => {
-      setElapsed(Date.now() - startTimeMs);
+      setElapsed(performance.now() - startTimeMs);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -25,9 +25,6 @@ export default function PracticeTimer({ startTimeMs, totalMs }: PracticeTimerPro
       <div className="timer-bar">
         <div className="timer-fill" style={{ width: `${pct}%` }} />
       </div>
-      <span className="timer-text">
-        {(elapsed / 1000).toFixed(1)}s / {(totalMs / 1000).toFixed(1)}s
-      </span>
     </div>
   );
 }

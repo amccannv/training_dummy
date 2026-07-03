@@ -1,4 +1,3 @@
-/* ── Start Screen ── */
 .practice-start {
   display: flex;
   flex-direction: column;
@@ -26,11 +25,14 @@
   padding: 0.75rem 2rem;
 }
 
-/* ── Active Practice ── */
 .practice-active {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.practice-active .key:disabled {
+  opacity: 1;
 }
 
 .practice-top-bar {
@@ -61,142 +63,25 @@
   border-color: var(--danger);
 }
 
-/* ── Timer ── */
-.practice-timer {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
 .timer-bar {
-  height: 4px;
+  height: 6px;
   background: var(--surface);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .timer-fill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
-  transition: width 0.05s linear;
+  background: linear-gradient(90deg, var(--accent), rgba(88, 166, 255, 0.4));
+  border-radius: 3px;
 }
 
-.timer-text {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ── Action Schedule ── */
-.action-schedule {
+.top-bar-right {
   display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-}
-
-.schedule-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.schedule-label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-/* Active */
-.active-actions {
-  display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
 }
 
-.active-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  background: rgba(88, 166, 255, 0.06);
-  font-size: 0.8125rem;
-}
-
-.active-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-}
-
-.active-name {
-  font-weight: 500;
-}
-
-.active-key {
-  font-family: ui-monospace, 'SF Mono', monospace;
-  color: var(--accent);
-  font-size: 0.75rem;
-  padding: 0.05rem 0.3rem;
-  border: 1px solid rgba(88, 166, 255, 0.25);
-  border-radius: 3px;
-  background: rgba(88, 166, 255, 0.08);
-}
-
-/* Upcoming */
-.upcoming-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.upcoming-item {
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.upcoming-icon {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-  opacity: 0.5;
-}
-
-.upcoming-eta {
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Recent Log */
-.recent-log {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.log-item {
-  font-size: 0.75rem;
-  padding: 0.125rem 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.log-item.hit {
-  color: var(--success);
-}
-
-.log-item.miss {
-  color: var(--danger);
-}
-
-/* ── Results Screen ── */
 .results-screen {
   display: flex;
   flex-direction: column;
@@ -223,212 +108,98 @@
   margin-bottom: 0.5rem;
 }
 
-.result-stat {
+.results-panels {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  max-width: 48rem;
+  margin-bottom: 1rem;
+}
+
+.results-panels.single {
+  max-width: 28rem;
+}
+
+.results-panel {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-label {
+.results-panel-title {
   font-size: 0.6875rem;
+  font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.results-detail {
-  display: flex;
-  gap: 1rem;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-bottom: 0.5rem;
-}
-
-.detail-item {
-  background: var(--surface);
-  padding: 0.25rem 0.5rem;
-  border-radius: calc(var(--radius) - 2px);
-}
-
-.most-missed {
-  width: 100%;
-  max-width: 20rem;
-  margin-bottom: 1rem;
-}
-
-.most-missed-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 0.375rem;
-}
-
-.most-missed-list {
+.results-panel-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-}
-
-.most-missed-row {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.25rem 0.5rem;
-  border-radius: calc(var(--radius) - 2px);
-  background: var(--surface);
-  font-size: 0.8125rem;
+  gap: 0.125rem;
 }
 
-.most-missed-count {
-  color: var(--warning);
+.results-fraction {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.results-accuracy {
+  font-size: 0.875rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.results-actions {
-  display: flex;
-  gap: 0.75rem;
-}
+.results-accuracy.good { color: var(--success); }
+.results-accuracy.ok { color: var(--warning); }
+.results-accuracy.bad { color: var(--danger); }
 
-/* ── Top Bar Right ── */
-.top-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* ── Active Prayer Pill ── */
-.active-prayer-pill {
+.results-panel-detail {
   font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.2rem 0.5rem;
-  border-radius: 3px;
-  white-space: nowrap;
-}
-
-.active-prayer-pill.on {
-  color: var(--warning);
-  border: 1px solid var(--warning);
-  background: rgba(210, 153, 34, 0.08);
-}
-
-.active-prayer-pill.off {
   color: var(--text-muted);
-  border: 1px solid var(--border);
-  background: var(--surface);
 }
 
-/* ── Prayer Config ── */
-.prayer-config-section {
-  width: 100%;
-  margin-bottom: 11rem;
+.detail-pill {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.125rem 0.5rem;
+  border-radius: calc(var(--radius) - 2px);
 }
 
-.prayer-toggle-label {
+.results-ss-row {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  user-select: none;
-  margin-bottom: 0.5rem;
+  padding: 0.25rem 0;
 }
 
-.prayer-toggle-label input {
-  accent-color: var(--accent);
-}
-
-.prayer-config-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.prayer-pool {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.prayer-pool-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.prayer-toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-}
-
-.prayer-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  user-select: none;
-  padding: 0.2rem 0.375rem;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.15);
-  transition: border-color 0.1s;
-}
-
-.prayer-checkbox:hover {
-  border-color: var(--accent);
-}
-
-.prayer-checkbox input {
-  accent-color: var(--accent);
-}
-
-.prayer-check-icon {
-  width: 16px;
-  height: 16px;
+.results-ss-icon {
+  width: 20px;
+  height: 20px;
   object-fit: contain;
 }
 
-.prayer-interval {
-  display: flex;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
-  align-items: center;
-}
-
-.prayer-interval select {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.2rem 0.375rem;
-  border-radius: 3px;
-  font-size: 0.8125rem;
-  cursor: pointer;
-}
-
-/* ── Results Prayer Section ── */
-.results-prayer {
-  margin-bottom: 0.5rem;
-}
-
-.results-prayer-title {
+.results-ss-text {
   font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.results-subsection {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.results-subsection-title {
+  font-size: 0.625rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -436,7 +207,65 @@
   margin-bottom: 0.25rem;
 }
 
-/* ── Unbound / No Bindings ── */
+.results-subsection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.results-subrow {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: calc(var(--radius) - 2px);
+  background: rgba(0, 0, 0, 0.15);
+  font-size: 0.75rem;
+}
+
+.results-subrow-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.results-subrow-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.results-subrow-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.results-progress {
+  flex: 1;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.results-progress-fill {
+  height: 100%;
+  background: var(--success);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.results-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
 .no-bindings-notice {
   background: rgba(210, 153, 34, 0.08);
   border: 1px solid var(--warning);
@@ -465,7 +294,6 @@
   margin-bottom: 0.25rem;
 }
 
-/* ── Shared Buttons ── */
 .btn-primary {
   background: var(--accent);
   border: none;
@@ -498,3 +326,97 @@
   background: var(--surface-hover);
   border-color: var(--accent);
 }
+
+.flick-settings {
+  width: 100%;
+  max-width: 28rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.flick-settings-header {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.flick-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.flick-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  width: 64px;
+  flex-shrink: 0;
+}
+
+.flick-preset-group {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.flick-preset-btn,
+.flick-style-btn {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.25rem 0.5rem;
+  border-radius: calc(var(--radius) - 2px);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.flick-preset-btn:hover,
+.flick-style-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.flick-preset-btn.active,
+.flick-style-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.flick-preview-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.prayer-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.25rem 0.5rem;
+}
+
+.prayer-indicator-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.prayer-indicator-label {
+  font-size: 0.75rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+

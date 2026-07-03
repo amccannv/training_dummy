@@ -1,17 +1,14 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { usePracticeStore } from '../store/practiceStore';
 import { useKeybindStore } from '../store/keybindStore';
-import { playHitSound, playMissSound } from '../utils/audio';
-
-export type FeedbackQuality = 'instant' | 'perfect' | 'early';
+import { playHitSound, playMissSound, playAbilitySound } from '../utils/audio';
+import { getActionById } from '../data/actions';
 
 export interface PracticeFeedback {
   type: 'hit' | 'miss';
   actionId: string | null;
   keyCode: string;
-  offsetMs?: number;
-  reason?: 'wrong-action' | 'wrong-timing';
-  quality?: FeedbackQuality;
+  reason?: 'wrong-action' | 'wrong-timing' | 'gcd-locked';
   id: number;
 }
 
@@ -28,42 +25,46 @@ function isModifierCode(code: string): boolean {
   return MODIFIER_CODES.has(code);
 }
 
+function modifierPair(code: string): string | null {
+  switch (code) {
+    case 'ShiftLeft': return 'ShiftRight';
+    case 'ShiftRight': return 'ShiftLeft';
+    case 'ControlLeft': return 'ControlRight';
+    case 'ControlRight': return 'ControlLeft';
+    case 'AltLeft': return 'AltRight';
+    case 'AltRight': return 'AltLeft';
+    case 'MetaLeft': return 'MetaRight';
+    case 'MetaRight': return 'MetaLeft';
+    default: return null;
+  }
+}
+
 export function usePracticeInput() {
   const [feedback, setFeedback] = useState<PracticeFeedback | null>(null);
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   const [activeModifierCode, setActiveModifierCode] = useState<string | null>(null);
   const feedbackIdRef = useRef(0);
   const modStackRef = useRef<string[]>([]);
+  const heldModCodesRef = useRef<Set<string>>(new Set());
 
   const sessionActive = usePracticeStore((s) => s.sessionActive);
   const handleKeypress = usePracticeStore((s) => s.handleKeypress);
   const getBinding = useKeybindStore((s) => s.getBinding);
 
-  const addPressed = useCallback((code: string) => {
-    setPressedKeys((prev) => {
-      if (prev.has(code)) return prev;
-      const next = new Set(prev);
-      next.add(code);
-      return next;
-    });
-  }, []);
-
-  const removePressed = useCallback((code: string) => {
-    setPressedKeys((prev) => {
-      if (!prev.has(code)) return prev;
-      const next = new Set(prev);
-      next.delete(code);
-      return next;
-    });
-  }, []);
-
   useEffect(() => {
     if (!sessionActive) return;
 
     const onDown = (e: KeyboardEvent) => {
-      addPressed(e.code);
+      setPressedKeys((prev) => {
+        const next = new Set(prev);
+        next.add(e.code);
+        const pair = modifierPair(e.code);
+        if (pair) next.add(pair);
+        return next;
+      });
 
       if (isModifierCode(e.code)) {
+        heldModCodesRef.current.add(e.code);
         modStackRef.current = modStackRef.current.filter(c => c !== e.code);
         modStackRef.current.push(e.code);
         setActiveModifierCode(e.code);
@@ -75,39 +76,61 @@ export function usePracticeInput() {
       e.preventDefault();
       e.stopPropagation();
 
-      const keybind = {
-        code: e.code,
-        ctrl: e.ctrlKey,
-        shift: e.shiftKey,
-        alt: e.altKey,
-        meta: e.metaKey,
+      const keybind: { code: string; ctrl: boolean; shift: boolean; alt: boolean; meta: boolean } = {
+        code: e.code, ctrl: false, shift: false, alt: false, meta: false,
       };
+      const stack = modStackRef.current;
+      if (stack.length > 0) {
+        const lastMod = stack[stack.length - 1];
+        switch (lastMod) {
+          case 'ControlLeft': case 'ControlRight': keybind.ctrl = true; break;
+          case 'ShiftLeft':   case 'ShiftRight':   keybind.shift = true; break;
+          case 'AltLeft':     case 'AltRight':     keybind.alt = true; break;
+          case 'MetaLeft':    case 'MetaRight':    keybind.meta = true; break;
+        }
+      }
 
       const result = handleKeypress(keybind, getBinding);
 
       if (result.type !== 'ignored') {
+        if (result.type === 'prayer-change') {
+          const def = getActionById(result.actionId);
+          if (def?.soundUrl) playAbilitySound(def.soundUrl);
+          return;
+        }
+
         const id = ++feedbackIdRef.current;
         setFeedback({
-          type: result.type === 'prayer-toggle' ? 'hit' : result.type,
-          actionId: result.type === 'hit' || result.type === 'prayer-toggle' ? result.actionId : null,
+          type: result.type,
+          actionId: result.type === 'hit' ? result.actionId : null,
           keyCode: e.code,
-          offsetMs: result.type === 'hit' ? result.offsetMs : undefined,
           reason: result.type === 'miss' ? result.reason : undefined,
-          quality: result.type === 'hit' ? result.quality : undefined,
           id,
         });
 
         if (result.type === 'hit') {
           playHitSound();
+          const def = getActionById(result.actionId);
+          if (def?.soundUrl) playAbilitySound(def.soundUrl);
         } else if (result.type === 'miss') {
           playMissSound();
         }
-        // prayer-toggle: no audio
       }
     };
 
     const onUp = (e: KeyboardEvent) => {
-      removePressed(e.code);
+      if (isModifierCode(e.code)) {
+        heldModCodesRef.current.delete(e.code);
+      }
+      setPressedKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(e.code);
+        const pair = modifierPair(e.code);
+        if (pair && !heldModCodesRef.current.has(e.code) && !heldModCodesRef.current.has(pair)) {
+          next.delete(pair);
+        }
+        return next;
+      });
 
       if (isModifierCode(e.code)) {
         modStackRef.current = modStackRef.current.filter(c => c !== e.code);
@@ -125,7 +148,7 @@ export function usePracticeInput() {
       window.removeEventListener('keydown', onDown, true);
       window.removeEventListener('keyup', onUp, true);
     };
-  }, [sessionActive, handleKeypress, getBinding, addPressed, removePressed]);
+  }, [sessionActive, handleKeypress, getBinding]);
 
   useEffect(() => {
     if (!feedback) return;

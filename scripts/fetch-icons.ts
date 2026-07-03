@@ -35,13 +35,8 @@ const mappings: IconMapping[] = [
   { actionId: 'Escape',            fileName: 'Escape.png' },
 
   // Constitution Special
-  { actionId: 'EOF',               fileName: 'Essence_of_Finality_amulet.png' },
-  { actionId: 'DarkBowSpec',       fileName: 'Dark_bow.png' },
-  { actionId: 'ZamorakBowSpec',    fileName: 'Zamorak_bow.png' },
-  { actionId: 'GloomfireBowSpec',  fileName: 'Gloomfire_bow.png' },
-  { actionId: 'SGBSpec',           fileName: 'Seren_godbow.png' },
-  { actionId: 'ECBSpec',           fileName: 'Eldritch_crossbow.png' },
-  { actionId: 'BOTLGSpec',         fileName: 'Bow_of_the_Last_Guardian.png' },
+  { actionId: 'EOF',                  fileName: 'Essence_of_Finality_amulet.png' },
+  { actionId: 'WeaponSpecialAttack',  fileName: 'Weapon_Special_Attack.png' },
 
   // Constitution Basic
   { actionId: 'Sacrifice',         fileName: 'Sacrifice.png' },

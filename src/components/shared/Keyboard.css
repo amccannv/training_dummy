@@ -1,6 +1,7 @@
 .keyboard {
   padding: 0.5rem 0 0;
   user-select: none;
+  overflow-x: auto;
 }
 
 .keyboard-row {

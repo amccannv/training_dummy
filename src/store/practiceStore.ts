@@ -1,127 +1,66 @@
 import { create } from 'zustand';
-import type {
-  Rotation,
-  TimedAction,
-  TimedSession,
-  ActionQuality,
-  PrayerConfig,
-  PrayerCheckEvent,
-} from '../types';
-import { actions } from '../data/actions';
-import { keybindEquals } from '../utils/keybindFormat';
+import type { Rotation, TickEvent, PrayerFlickSettings, PrayerAttack, AttackStyle } from '../types';
+import { abilityDuration, compileEndTick } from '../utils/compiler';
 import { setItem } from '../utils/storage';
+import { keybindEquals } from '../utils/keybindFormat';
 
 export type KeypressResult =
-  | { type: 'hit'; actionId: string; offsetMs: number; quality: ActionQuality }
-  | { type: 'prayer-toggle'; actionId: string; newState: 'activated' | 'deactivated' }
-  | { type: 'miss'; reason: 'wrong-action' | 'wrong-timing' }
-  | { type: 'ignored' };
+  | { type: 'hit'; actionId: string }
+  | { type: 'miss'; reason: 'wrong-action' | 'wrong-timing' | 'gcd-locked' }
+  | { type: 'ignored' }
+  | { type: 'prayer-change'; actionId: string };
 
-interface GCDWindow {
-  gcdIndex: number;
-  windowStartMs: number;
-  windowEndMs: number;
-  expectedActionIds: string[];
-  lastPressedId: string | null;
-  lastPressTimeMs: number;
-  resolved: boolean;
-}
+const PRAYER_IDS = ['SoulSplit', 'DeflectMelee', 'DeflectMagic', 'DeflectMissiles', 'DeflectNecromancy'];
+const DEFAULT_FLICK: PrayerFlickSettings = {
+  enabled: false,
+  attackRate: 5,
+  telegraphTicks: 2,
+  styles: ['melee', 'magic', 'ranged', 'necromancy'],
+};
+const WARMUP_TICKS = 10;
 
-interface PrayerFeedbackEvent {
-  type: 'hit' | 'miss';
-  actionId: string;
-  id: number;
+function styleToDeflectId(style: AttackStyle): string {
+  switch (style) {
+    case 'melee': return 'DeflectMelee';
+    case 'magic': return 'DeflectMagic';
+    case 'ranged': return 'DeflectMissiles';
+    case 'necromancy': return 'DeflectNecromancy';
+  }
 }
 
 interface PracticeStore {
   rotation: Rotation | null;
+  events: TickEvent[];
   sessionActive: boolean;
   startTimeMs: number;
-  currentActive: string[];
-  completed: TimedAction[];
-  missed: string[];
+  hits: number;
+  misses: number;
   wrongPresses: number;
-  gcdWindows: GCDWindow[];
-  currentGcdIndex: number;
-  // Prayer state
-  activePrayerId: string | null;
-  prayerConfig: PrayerConfig | null;
-  prayerChecks: PrayerCheckEvent[];
+
+  flickSettings: PrayerFlickSettings;
+  prayerAttacks: PrayerAttack[];
+  activePrayer: string;
   prayerHits: number;
   prayerMisses: number;
-  prayerFeedback: PrayerFeedbackEvent | null;
+  ssTicks: number;
+  totalPrayerTicks: number;
+  lastCountedTick: number;
 
-  startPractice: (rotation: Rotation, prayerConfig?: PrayerConfig | null) => void;
+  startPractice: (rotation: Rotation) => void;
   handleKeypress: (
     pressed: { code: string; ctrl: boolean; shift: boolean; alt: boolean; meta: boolean },
     getBinding: (actionId: string) => { code: string; ctrl: boolean; shift: boolean; alt: boolean; meta: boolean } | null,
   ) => KeypressResult;
-  processExpired: (nowMs: number) => void;
+  tick: () => void;
   finishSession: () => void;
   reset: () => void;
+  setFlickSettings: (settings: PrayerFlickSettings) => void;
 }
 
-const TIMING_WINDOW_MS = 300;
-const GCD_MS = 1800;
-let fbIdCounter = 0;
+const TICK_MS = 600;
 
-const PRAYER_IDS = new Set(
-  actions.filter((a) => a.category === 'prayer').map((a) => a.id),
-);
-
-function isAuthor(aId: string): boolean {
-  return PRAYER_IDS.has(aId);
-}
-
-function isInstant(actionId: string): boolean {
-  const def = actions.find((a) => a.id === actionId);
-  return def ? def.durationTicks === 0 : true;
-}
-
-function buildGcdWindows(rotation: Rotation): GCDWindow[] {
-  const windows = new Map<number, GCDWindow>();
-
-  for (const step of rotation.steps) {
-    for (const aId of step.actions) {
-      if (isInstant(aId)) continue;
-
-      const gcdIdx = Math.round(step.targetTimeMs / GCD_MS);
-      if (!windows.has(gcdIdx)) {
-        const startMs = gcdIdx * GCD_MS;
-        windows.set(gcdIdx, {
-          gcdIndex: gcdIdx,
-          windowStartMs: startMs,
-          windowEndMs: startMs + GCD_MS,
-          expectedActionIds: [],
-          lastPressedId: null,
-          lastPressTimeMs: 0,
-          resolved: false,
-        });
-      }
-      windows.get(gcdIdx)!.expectedActionIds.push(aId);
-    }
-  }
-
-  return Array.from(windows.values()).sort((a, b) => a.gcdIndex - b.gcdIndex);
-}
-
-function generatePrayerChecks(
-  config: PrayerConfig,
-  totalMs: number,
-): PrayerCheckEvent[] {
-  const checks: PrayerCheckEvent[] = [];
-  const intervalMs = config.checkIntervalTicks * 600;
-  const pool = config.enabledIds;
-  if (pool.length === 0) return checks;
-
-  for (let t = 0; t <= totalMs; t += intervalMs) {
-    checks.push({
-      targetTimeMs: t,
-      requiredPrayerId: pool[Math.floor(Math.random() * pool.length)],
-      state: 'pending',
-    });
-  }
-  return checks;
+function currentTick(startTimeMs: number): number {
+  return Math.floor((performance.now() - startTimeMs) / TICK_MS);
 }
 
 function matchKeybind(
@@ -131,257 +70,257 @@ function matchKeybind(
 ): boolean {
   const binding = getBinding(actionId);
   if (!binding) return false;
-  return keybindEquals(
-    { code: binding.code, ctrl: binding.ctrl, shift: binding.shift, alt: binding.alt, meta: binding.meta },
-    { code: pressed.code, ctrl: pressed.ctrl, shift: pressed.shift, alt: pressed.alt, meta: pressed.meta },
-  );
+  return keybindEquals(binding, pressed);
+}
+
+function checkAllDone(events: TickEvent[]): boolean {
+  return events.every((e) => e.resolved);
+}
+
+function checkSessionDone(events: TickEvent[], prayerAttacks: PrayerAttack[], flickEnabled: boolean): boolean {
+  if (!checkAllDone(events)) return false;
+  if (flickEnabled) return prayerAttacks.every((a) => a.resolved);
+  return true;
+}
+
+export function compileEventData(
+  rotation: Rotation,
+): { tick: number; duration: number; gcdEndTick: number }[] {
+  const result: { tick: number; duration: number; gcdEndTick: number }[] = [];
+  let nextTick = 3;
+
+  for (const abilityId of rotation.abilities) {
+    const dur = abilityDuration(abilityId);
+    result.push({ tick: nextTick, duration: dur, gcdEndTick: Math.max(nextTick, nextTick + dur - 1) });
+    if (dur > 0) nextTick = nextTick + dur;
+  }
+
+  return result;
+}
+
+function generateAttacks(rotation: Rotation, settings: PrayerFlickSettings): PrayerAttack[] {
+  const endTick = compileEndTick(rotation);
+  const attacks: PrayerAttack[] = [];
+  let nextAttack = WARMUP_TICKS;
+
+  while (nextAttack <= endTick) {
+    const styleIdx = Math.floor(Math.random() * settings.styles.length);
+    attacks.push({
+      tick: nextAttack,
+      style: settings.styles[styleIdx],
+      resolved: false,
+    });
+    nextAttack += settings.attackRate;
+  }
+
+  return attacks;
 }
 
 export const usePracticeStore = create<PracticeStore>()((set, get) => ({
   rotation: null,
+  events: [],
   sessionActive: false,
   startTimeMs: 0,
-  currentActive: [],
-  completed: [],
-  missed: [],
+  hits: 0,
+  misses: 0,
   wrongPresses: 0,
-  gcdWindows: [],
-  currentGcdIndex: 0,
-  activePrayerId: null,
-  prayerConfig: null,
-  prayerChecks: [],
+
+  flickSettings: { ...DEFAULT_FLICK },
+  prayerAttacks: [],
+  activePrayer: 'SoulSplit',
   prayerHits: 0,
   prayerMisses: 0,
-  prayerFeedback: null,
+  ssTicks: 0,
+  totalPrayerTicks: 0,
+  lastCountedTick: -1,
 
-  startPractice: (rotation, prayerConfig = null) => {
-    const totalMs = rotation.steps[rotation.steps.length - 1].targetTimeMs + 600;
+  setFlickSettings: (settings) => {
+    set({ flickSettings: settings });
+  },
+
+  startPractice: (rotation) => {
+    const eventData = compileEventData(rotation);
+    const events: TickEvent[] = eventData.map((d, i) => ({
+      tick: d.tick,
+      abilityId: rotation.abilities[i],
+      resolved: false,
+      duration: d.duration,
+      gcdEndTick: d.gcdEndTick,
+    }));
+
+    const flick = get().flickSettings;
+    const prayerAttacks = flick.enabled ? generateAttacks(rotation, flick) : [];
+
     set({
       rotation,
+      events,
       sessionActive: true,
-      startTimeMs: Date.now(),
-      currentActive: [],
-      completed: [],
-      missed: [],
+      startTimeMs: performance.now(),
+      hits: 0,
+      misses: 0,
       wrongPresses: 0,
-      gcdWindows: buildGcdWindows(rotation),
-      currentGcdIndex: 0,
-      activePrayerId: null,
-      prayerConfig,
-      prayerChecks: prayerConfig
-        ? generatePrayerChecks(prayerConfig, totalMs)
-        : [],
+      prayerAttacks,
+      activePrayer: 'SoulSplit',
       prayerHits: 0,
       prayerMisses: 0,
-      prayerFeedback: null,
+      ssTicks: 0,
+      totalPrayerTicks: 0,
+      lastCountedTick: -1,
     });
   },
 
   handleKeypress: (pressed, getBinding) => {
     const state = get();
-    if (!state.rotation || !state.sessionActive) return { type: 'ignored' };
-    const elapsed = Date.now() - state.startTimeMs;
+    if (!state.sessionActive || state.events.length === 0) return { type: 'ignored' };
 
-    // 1. Instant actions in active windows
-    for (const aId of state.currentActive) {
-      if (matchKeybind(aId, pressed, getBinding)) {
-        const step = state.rotation.steps.find((s) => s.actions.includes(aId));
-        if (!step) continue;
-        const offset = elapsed - step.targetTimeMs;
-        const isPrayer = isAuthor(aId);
-        const newPrayer = isPrayer
-          ? state.activePrayerId === aId ? null : aId
-          : state.activePrayerId;
-        set({
-          currentActive: state.currentActive.filter((a) => a !== aId),
-          completed: [
-            ...state.completed,
-            { actionId: aId, pressTimeMs: elapsed, offsetMs: Math.round(offset), quality: 'instant' as ActionQuality },
-          ],
-          activePrayerId: newPrayer,
-        });
-        return { type: 'hit', actionId: aId, offsetMs: Math.round(offset), quality: 'instant' };
-      }
-    }
-
-    // 2. GCD-gated actions in current window
-    const currentWindow = state.gcdWindows[state.currentGcdIndex];
-    if (currentWindow && !currentWindow.resolved) {
-      for (const aId of currentWindow.expectedActionIds) {
-        if (matchKeybind(aId, pressed, getBinding)) {
-          const quality: ActionQuality =
-            elapsed >= currentWindow.windowEndMs - 600 ? 'perfect' : 'early';
-          const isPrayer = isAuthor(aId);
-          const newPrayer = isPrayer
-            ? state.activePrayerId === aId ? null : aId
-            : state.activePrayerId;
-          const updated = state.gcdWindows.map((w, i) =>
-            i === state.currentGcdIndex
-              ? { ...w, lastPressedId: aId, lastPressTimeMs: elapsed }
-              : w,
-          );
-          set({ gcdWindows: updated, activePrayerId: newPrayer });
-          return { type: 'hit', actionId: aId, offsetMs: Math.round(elapsed - currentWindow.windowEndMs), quality };
+    if (state.flickSettings.enabled) {
+      for (const prayerId of PRAYER_IDS) {
+        if (matchKeybind(prayerId, pressed, getBinding)) {
+          set({ activePrayer: prayerId });
+          return { type: 'prayer-change', actionId: prayerId };
         }
       }
     }
 
-    // 3. Pure prayer toggle (key matches a prayer, not in any window)
-    for (const aId of PRAYER_IDS) {
-      if (matchKeybind(aId, pressed, getBinding)) {
-        const newState = state.activePrayerId === aId ? null : aId;
-        set({ activePrayerId: newState });
-        return {
-          type: 'prayer-toggle',
-          actionId: aId,
-          newState: newState ? 'activated' : 'deactivated',
-        };
+    for (const prayerId of PRAYER_IDS) {
+      if (matchKeybind(prayerId, pressed, getBinding)) {
+        return { type: 'ignored' };
       }
     }
 
-    // 4. Press matches an action but not in expected window
-    for (const step of state.rotation.steps) {
-      for (const aId of step.actions) {
-        if (
-          state.completed.some((c) => c.actionId === aId) ||
-          state.missed.includes(aId)
-        )
-          continue;
-        if (matchKeybind(aId, pressed, getBinding)) {
-          set({ wrongPresses: state.wrongPresses + 1 });
-          return { type: 'miss', reason: 'wrong-timing' };
+    const ci = state.events.findIndex((e) => !e.resolved);
+    if (ci === -1) return { type: 'ignored' };
+
+    const event = state.events[ci];
+    const tick = currentTick(state.startTimeMs);
+
+    const isGcdLocked = ci > 0 && tick <= state.events[ci - 1].gcdEndTick;
+
+    if (matchKeybind(event.abilityId, pressed, getBinding)) {
+      if (tick === event.tick) {
+        const events = [...state.events];
+        events[ci] = { ...event, resolved: true, result: 'hit' };
+        const hits = state.hits + 1;
+
+        if (checkSessionDone(events, state.prayerAttacks, state.flickSettings.enabled)) {
+          set({ events, hits, sessionActive: false });
+          setTimeout(() => get().finishSession(), 50);
+        } else {
+          set({ events, hits });
         }
+
+        return { type: 'hit', actionId: event.abilityId };
+      }
+
+      const reason = isGcdLocked ? 'gcd-locked' : 'wrong-timing';
+      const events = [...state.events];
+      events[ci] = { ...event, resolved: true, result: 'miss' };
+      const misses = state.misses + 1;
+      const wrongPresses = state.wrongPresses + 1;
+
+      if (checkSessionDone(events, state.prayerAttacks, state.flickSettings.enabled)) {
+        set({ events, misses, wrongPresses, sessionActive: false });
+        setTimeout(() => get().finishSession(), 50);
+      } else {
+        set({ events, misses, wrongPresses });
+      }
+
+      return { type: 'miss', reason };
+    }
+
+    for (const aId of state.rotation?.abilities ?? []) {
+      if (matchKeybind(aId, pressed, getBinding)) {
+        const reason = isGcdLocked ? 'gcd-locked' : 'wrong-timing';
+        set({ wrongPresses: state.wrongPresses + 1 });
+        return { type: 'miss', reason };
       }
     }
 
-    // 5. No match at all
     set({ wrongPresses: state.wrongPresses + 1 });
     return { type: 'miss', reason: 'wrong-action' };
   },
 
-  processExpired: (nowMs: number) => {
+  tick: () => {
     const state = get();
-    if (!state.rotation || !state.sessionActive) return;
-    const elapsed = nowMs - state.startTimeMs;
+    if (!state.sessionActive || state.events.length === 0) return;
 
-    let currentActive = [...state.currentActive];
-    let missed = [...state.missed];
-    let completed = [...state.completed];
-    let gcdWindows = state.gcdWindows.map((w) => ({ ...w }));
-    let currentGcdIndex = state.currentGcdIndex;
-    let prayerChecks = state.prayerChecks.map((c) => ({ ...c }));
+    const tick = currentTick(state.startTimeMs);
+
+    let events = [...state.events];
+    let abilityChanged = false;
+
+    for (let i = 0; i < events.length; i++) {
+      if (events[i].resolved) continue;
+      if (tick > events[i].tick) {
+        events[i] = { ...events[i], resolved: true, result: 'miss' };
+        abilityChanged = true;
+      }
+    }
+
+    let prayerChanged = false;
+    let prayerAttacks = state.prayerAttacks;
     let prayerHits = state.prayerHits;
     let prayerMisses = state.prayerMisses;
-    let prayerFeedback: PrayerFeedbackEvent | null = state.prayerFeedback;
-    let changed = false;
+    let ssTicks = state.ssTicks;
+    let totalPrayerTicks = state.totalPrayerTicks;
+    let lastCounted = state.lastCountedTick;
 
-    // --- Instant action windows ---
-    for (const step of state.rotation.steps) {
-      for (const aId of step.actions) {
-        if (!isInstant(aId)) continue;
-        if (completed.some((c) => c.actionId === aId) || missed.includes(aId)) continue;
-
-        const wStart = step.targetTimeMs - TIMING_WINDOW_MS;
-        const wEnd = step.targetTimeMs + TIMING_WINDOW_MS;
-
-        if (elapsed >= wStart && elapsed <= wEnd && !currentActive.includes(aId)) {
-          currentActive.push(aId);
-          changed = true;
-        }
-
-        if (elapsed > wEnd) {
-          missed.push(aId);
-          currentActive = currentActive.filter((a) => a !== aId);
-          changed = true;
+    if (state.flickSettings.enabled) {
+      if (lastCounted === -1) {
+        lastCounted = tick - 1;
+      }
+      while (lastCounted < tick) {
+        lastCounted++;
+        totalPrayerTicks++;
+        if (state.activePrayer === 'SoulSplit') {
+          ssTicks++;
         }
       }
-    }
 
-    // --- Resolve GCD windows ---
-    while (currentGcdIndex < gcdWindows.length) {
-      const win = gcdWindows[currentGcdIndex];
-      if (win.resolved) { currentGcdIndex++; continue; }
-
-      if (elapsed >= win.windowEndMs) {
-        if (
-          win.lastPressedId &&
-          win.expectedActionIds.includes(win.lastPressedId)
-        ) {
-          const quality: ActionQuality =
-            win.lastPressTimeMs >= win.windowEndMs - 600 ? 'perfect' : 'early';
-          completed.push({
-            actionId: win.lastPressedId,
-            pressTimeMs: win.lastPressTimeMs,
-            offsetMs: Math.round(win.lastPressTimeMs - win.windowEndMs),
-            quality,
-          });
-        } else {
-          for (const aId of win.expectedActionIds) {
-            if (!missed.includes(aId) && !completed.some((c) => c.actionId === aId)) {
-              missed.push(aId);
-            }
+      prayerAttacks = [...prayerAttacks];
+      for (let i = 0; i < prayerAttacks.length; i++) {
+        if (prayerAttacks[i].resolved) continue;
+        const attack = prayerAttacks[i];
+        if (tick >= attack.tick) {
+          const needed = styleToDeflectId(attack.style);
+          if (state.activePrayer === needed) {
+            prayerAttacks[i] = { ...attack, resolved: true, result: 'hit' };
+            prayerHits++;
+            prayerChanged = true;
+          } else if (tick > attack.tick) {
+            prayerAttacks[i] = { ...attack, resolved: true, result: 'miss' };
+            prayerMisses++;
+            prayerChanged = true;
           }
         }
-        gcdWindows[currentGcdIndex] = { ...win, resolved: true };
-        currentGcdIndex++;
-        changed = true;
-      } else {
-        break;
       }
     }
 
-    // --- Resolve prayer check events ---
-    for (let i = 0; i < prayerChecks.length; i++) {
-      const check = prayerChecks[i];
-      if (check.state !== 'pending') continue;
+    if (!abilityChanged && !prayerChanged) return;
 
-      if (elapsed >= check.targetTimeMs) {
-        if (state.activePrayerId === check.requiredPrayerId) {
-          prayerChecks[i] = { ...check, state: 'hit' };
-          prayerHits++;
-        } else {
-          prayerChecks[i] = { ...check, state: 'missed' };
-          prayerMisses++;
-          const id = ++fbIdCounter;
-          prayerFeedback = { type: 'miss', actionId: check.requiredPrayerId, id };
-        }
-        changed = true;
-      }
-    }
+    const hits = events.filter((e) => e.result === 'hit').length;
+    const misses = events.filter((e) => e.result === 'miss').length;
 
-    if (changed) {
-      const allIds = state.rotation.steps.flatMap((s) => s.actions);
-      const allDone = allIds.every(
-        (id) =>
-          completed.some((c) => c.actionId === id) || missed.includes(id),
-      );
+    set({
+      events,
+      hits,
+      misses,
+      prayerAttacks,
+      prayerHits,
+      prayerMisses,
+      ssTicks,
+      totalPrayerTicks,
+      lastCountedTick: lastCounted,
+    });
 
-      if (allDone) {
-        set({
-          currentActive,
-          missed,
-          completed,
-          gcdWindows,
-          prayerChecks,
-          prayerHits,
-          prayerMisses,
-          prayerFeedback,
-          sessionActive: false,
-        });
-        setTimeout(() => get().finishSession(), 50);
-      } else {
-        set({
-          currentActive,
-          missed,
-          completed,
-          gcdWindows,
-          currentGcdIndex,
-          prayerChecks,
-          prayerHits,
-          prayerMisses,
-          prayerFeedback,
-        });
-      }
+    const allAbilityDone = checkAllDone(events);
+    const allPrayerDone = state.flickSettings.enabled
+      ? prayerAttacks.every((a) => a.resolved)
+      : true;
+
+    if (allAbilityDone && allPrayerDone) {
+      set({ sessionActive: false });
+      setTimeout(() => get().finishSession(), 50);
     }
   },
 
@@ -389,19 +328,37 @@ export const usePracticeStore = create<PracticeStore>()((set, get) => ({
     const state = get();
     if (!state.rotation) return;
 
-    const session: TimedSession = {
+    const session = {
       rotationId: state.rotation.id,
       date: new Date().toISOString(),
-      completed: state.completed,
-      missed: state.missed,
+      hits: state.events.filter((e) => e.result === 'hit').length,
+      misses: state.events.filter((e) => e.result === 'miss').length,
       wrongPresses: state.wrongPresses,
-      prayerHits: state.prayerHits,
-      prayerMisses: state.prayerMisses,
-      prayerChecks: state.prayerChecks,
+      events: state.events.map((e) => ({
+        actionId: e.abilityId,
+        tick: e.tick,
+        result: (e.result || 'miss') as 'hit' | 'miss',
+      })),
+      ...(state.flickSettings.enabled && state.prayerAttacks.length > 0
+        ? {
+            prayerStats: {
+              hits: state.prayerHits,
+              misses: state.prayerMisses,
+              ssUptimeTicks: state.ssTicks,
+              totalTicks: state.totalPrayerTicks,
+              attacks: state.prayerAttacks.map((a) => ({
+                tick: a.tick,
+                style: a.style,
+                result: (a.result || 'miss') as 'hit' | 'miss',
+              })),
+            },
+          }
+        : {}),
     };
 
     const raw = localStorage.getItem('rs3-sessions');
-    const sessions: TimedSession[] = raw ? JSON.parse(raw) : [];
+    const sessions = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(sessions)) return;
     sessions.push(session);
     setItem('sessions', sessions);
   },
@@ -409,20 +366,19 @@ export const usePracticeStore = create<PracticeStore>()((set, get) => ({
   reset: () => {
     set({
       rotation: null,
+      events: [],
       sessionActive: false,
       startTimeMs: 0,
-      currentActive: [],
-      completed: [],
-      missed: [],
+      hits: 0,
+      misses: 0,
       wrongPresses: 0,
-      gcdWindows: [],
-      currentGcdIndex: 0,
-      activePrayerId: null,
-      prayerConfig: null,
-      prayerChecks: [],
+      prayerAttacks: [],
+      activePrayer: 'SoulSplit',
       prayerHits: 0,
       prayerMisses: 0,
-      prayerFeedback: null,
+      ssTicks: 0,
+      totalPrayerTicks: 0,
+      lastCountedTick: -1,
     });
   },
 }));

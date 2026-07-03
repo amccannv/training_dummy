@@ -20,6 +20,20 @@ function isModifierCode(code: string): boolean {
   return MODIFIER_CODES.has(code);
 }
 
+function modifierPair(code: string): string | null {
+  switch (code) {
+    case 'ShiftLeft': return 'ShiftRight';
+    case 'ShiftRight': return 'ShiftLeft';
+    case 'ControlLeft': return 'ControlRight';
+    case 'ControlRight': return 'ControlLeft';
+    case 'AltLeft': return 'AltRight';
+    case 'AltRight': return 'AltLeft';
+    case 'MetaLeft': return 'MetaRight';
+    case 'MetaRight': return 'MetaLeft';
+    default: return null;
+  }
+}
+
 export function useKeybindCapture() {
   const capturingActionId = useKeybindStore((s) => s.capturingActionId);
   const setBinding = useKeybindStore((s) => s.setBinding);
@@ -30,6 +44,7 @@ export function useKeybindCapture() {
   const [activeModifierCode, setActiveModifierCode] = useState<string | null>(null);
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   const modStackRef = useRef<string[]>([]);
+  const heldModCodesRef = useRef<Set<string>>(new Set());
 
   // Reset visual state when capture ends (cleanup after binding assignment)
   useEffect(() => {
@@ -44,16 +59,18 @@ export function useKeybindCapture() {
   // plus capture logic when capturingActionId is set
   useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
-      // Always track pressed keys
+      if (e.code === 'Tab') e.preventDefault();
+
       setPressedKeys((prev) => {
-        if (prev.has(e.code)) return prev;
         const next = new Set(prev);
         next.add(e.code);
+        const pair = modifierPair(e.code);
+        if (pair) next.add(pair);
         return next;
       });
 
-      // Always track modifier order
       if (isModifierCode(e.code)) {
+        heldModCodesRef.current.add(e.code);
         modStackRef.current = modStackRef.current.filter(c => c !== e.code);
         modStackRef.current.push(e.code);
         setActiveModifierCode(e.code);
@@ -97,10 +114,16 @@ export function useKeybindCapture() {
     };
 
     const onUp = (e: KeyboardEvent) => {
+      if (isModifierCode(e.code)) {
+        heldModCodesRef.current.delete(e.code);
+      }
       setPressedKeys((prev) => {
-        if (!prev.has(e.code)) return prev;
         const next = new Set(prev);
         next.delete(e.code);
+        const pair = modifierPair(e.code);
+        if (pair && !heldModCodesRef.current.has(e.code) && !heldModCodesRef.current.has(pair)) {
+          next.delete(pair);
+        }
         return next;
       });
 

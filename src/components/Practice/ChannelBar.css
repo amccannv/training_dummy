@@ -1,0 +1,60 @@
+.channel-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  min-height: 50px;
+  box-sizing: border-box;
+}
+
+.channel-bar.active {
+  border: 1px solid var(--border);
+}
+
+.channel-bar-name {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.channel-bar-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.channel-bar-notches {
+  display: flex;
+  gap: 2px;
+}
+
+.channel-bar-notch {
+  width: 12px;
+  height: 16px;
+  background: var(--accent);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.channel-bar-notch-fill {
+  height: 100%;
+  background: #111;
+  transition: width 0.03s linear;
+}
+
+.channel-bar-remaining {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}

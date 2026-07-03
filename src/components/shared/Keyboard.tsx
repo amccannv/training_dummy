@@ -21,6 +21,7 @@ interface KeyboardProps {
   onKeyClick?: (code: string, modCode: string | null) => void;
   activePrayerKeyCode?: string | null;
   missedPrayerKeyCode?: string | null;
+  unit?: number;
 }
 
 const UNIT = 38;
@@ -65,7 +66,9 @@ export default function Keyboard({
   onKeyClick,
   activePrayerKeyCode = null,
   missedPrayerKeyCode = null,
+  unit,
 }: KeyboardProps) {
+  const size = unit ?? UNIT;
   const activeMod = codeToModFlags(activeModifierCode);
 
   return (
@@ -95,7 +98,9 @@ export default function Keyboard({
             if (isActivePrayer) classNames.push('active-prayer');
 
             const style: React.CSSProperties = {
-              width: `${(key.width ?? 1) * UNIT}px`,
+              width: `${(key.width ?? 1) * size}px`,
+              height: `${size}px`,
+              fontSize: `${Math.round(size * 0.3)}px`,
             };
 
             return (
@@ -114,9 +119,9 @@ export default function Keyboard({
                 title={key.label || key.code}
               >
                 {best?.iconUrl && (
-                  <img className="key-icon" src={best.iconUrl} alt="" />
+                  <img className="key-icon" src={best.iconUrl} alt="" style={{ width: Math.round(size * 0.47), height: Math.round(size * 0.47) }} />
                 )}
-                <span className="key-label">
+                <span className="key-label" style={{ fontSize: `${Math.round(size * 0.26)}px` }}>
                   {key.code === 'Space' ? null : key.label}
                 </span>
               </button>

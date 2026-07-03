@@ -8,27 +8,32 @@
   border-radius: var(--radius);
 }
 
-/* ── Grid Lines ── */
+.scrolling-timeline.has-attacks {
+  height: 300px;
+}
+
 .tl-grid {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1px;
+  width: 1.5px;
+  background: var(--text-muted);
+  opacity: 0.4;
   pointer-events: none;
 }
 
-.tl-grid.tick {
-  background: var(--border);
-  opacity: 0.2;
+.tl-tick-label {
+  position: absolute;
+  bottom: 4px;
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+  pointer-events: none;
+  transform: translateX(-50%);
+  font-variant-numeric: tabular-nums;
+  z-index: 2;
 }
 
-.tl-grid.gcd {
-  width: 2px;
-  background: var(--text-muted);
-  opacity: 0.3;
-}
-
-/* ── Hit Zone ── */
 .tl-hit-zone {
   position: absolute;
   top: 0;
@@ -40,33 +45,52 @@
   box-shadow: 0 0 12px rgba(88, 166, 255, 0.5);
 }
 
-/* ── Action Cards ── */
 .tl-card {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.125rem;
-  padding: 0.25rem 0.5rem;
+  justify-content: center;
+  gap: 1px;
+  padding: 2px;
+  width: 52px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-hover);
   font-size: 0.75rem;
-  transform: translate(-50%, -50%);
-  white-space: nowrap;
   z-index: 5;
   transition: background 0.3s, border-color 0.3s, box-shadow 0.3s, opacity 0.15s;
-  min-width: 60px;
+}
+
+.tl-card.ability {
+  top: 35%;
+  transform: translate(-50%, -50%);
+}
+
+.tl-card.attack {
+  top: 78%;
+  transform: translate(-50%, -50%);
+}
+
+.scrolling-timeline:not(.has-attacks) .tl-card.ability {
+  top: 50%;
 }
 
 .tl-card.pending {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(0.7);
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.scrolling-timeline.has-attacks .tl-card.ability.pending {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.scrolling-timeline.has-attacks .tl-card.attack.pending {
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .tl-card.approaching {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(0.92);
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .tl-card.active {
@@ -92,96 +116,35 @@
   z-index: 6;
 }
 
+.tl-card.attack.pending {
+  opacity: 0.55;
+}
+
+.tl-card.attack.approaching {
+  opacity: 0.9;
+}
+
 .tl-card-icon {
-  width: 16px;
-  height: 16px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .tl-card-name {
   font-weight: 500;
+  font-size: 0.625rem;
 }
 
 .tl-card-key {
   font-family: ui-monospace, 'SF Mono', monospace;
-  font-size: 0.625rem;
+  font-size: 0.5rem;
   color: var(--text-muted);
-  padding: 0.05rem 0.25rem;
+  padding: 1px 3px;
   border: 1px solid var(--border);
   border-radius: 3px;
   background: rgba(0, 0, 0, 0.2);
-}
-
-/* ── Tick Dots ── */
-.tl-tick-dots {
-  display: flex;
-  gap: 3px;
-  margin-top: 1px;
-}
-
-.tl-tick-dots .dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--text-muted);
-  opacity: 0.25;
-  transition: opacity 0.15s, background 0.15s;
-}
-
-.tl-tick-dots .dot.fill {
-  opacity: 1;
-  background: var(--accent);
-}
-
-.tl-card.tl-prayer .tl-tick-dots .dot.fill {
-  background: var(--warning);
-}
-
-/* ── Prayer Cards ── */
-.tl-card.tl-prayer {
-  border-color: var(--warning);
-  background: rgba(210, 153, 34, 0.06);
-}
-
-.tl-card.tl-prayer.hit {
-  border-color: var(--success);
-  background: rgba(63, 185, 80, 0.15);
-  animation: tlCardDone 0.35s ease-out forwards;
-}
-
-.tl-card.tl-prayer.missed {
-  border-color: var(--danger);
-  background: rgba(248, 81, 73, 0.12);
-  animation: tlCardDone 0.35s ease-out forwards;
-}
-
-.tl-card.tl-prayer.active {
-  border-color: var(--warning);
-  background: rgba(210, 153, 34, 0.1);
-  box-shadow: 0 0 8px rgba(210, 153, 34, 0.3);
-}
-
-/* ── Lane Labels ── */
-.tl-lane-label {
-  position: absolute;
-  font-size: 0.625rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 600;
-  pointer-events: none;
-  opacity: 0.4;
-}
-
-.tl-lane-label.abilities {
-  left: 6px;
-  top: 8px;
-}
-
-.tl-lane-label.prayers {
-  left: 6px;
-  bottom: 12px;
+  line-height: 1;
 }
 
 @keyframes tlCardActive {
