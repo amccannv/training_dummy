@@ -1,11 +1,11 @@
 import type { ActionDefinition } from '../types';
 
 function icon(id: string): string {
-  return `/icons/${id}.png`;
+  return `${import.meta.env.BASE_URL}icons/${id}.png`;
 }
 
 function sound(id: string): string {
-  return `/sounds/${id}.ogg`;
+  return `${import.meta.env.BASE_URL}sounds/${id}.ogg`;
 }
 
 export const actions: ActionDefinition[] = [
