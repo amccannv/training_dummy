@@ -1,9 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { useKeybindStore } from '../store/keybindStore';
+import { getActionById } from '../data/actions';
+import { formatKeybind } from '../utils/keybindFormat';
 import type { Keybind } from '../types';
 
 export interface ConflictInfo {
-  actionId: string;
+  keybind: string;
+  conflictActionId: string;
+  conflictName: string;
+  conflictIconUrl?: string;
   time: number;
 }
 
@@ -45,6 +50,18 @@ export function useKeybindCapture() {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   const modStackRef = useRef<string[]>([]);
   const heldModCodesRef = useRef<Set<string>>(new Set());
+
+  // Defined before the event-effect so it's always available in the closure
+  function reportConflict(keybind: Keybind, conflictId: string) {
+    const def = getActionById(conflictId);
+    setConflict({
+      keybind: formatKeybind(keybind),
+      conflictActionId: conflictId,
+      conflictName: def?.name ?? conflictId,
+      conflictIconUrl: def?.iconUrl,
+      time: Date.now(),
+    });
+  }
 
   // Reset visual state when capture ends (cleanup after binding assignment)
   useEffect(() => {
@@ -109,7 +126,7 @@ export function useKeybindCapture() {
 
       const result = setBinding(currentCapture, keybind);
       if (!result.success) {
-        setConflict({ actionId: result.conflictId, time: Date.now() });
+        reportConflict(keybind, result.conflictId);
       }
     };
 
@@ -145,6 +162,7 @@ export function useKeybindCapture() {
     };
   }, [setBinding, stopCapture]);
 
+  // Auto-dismiss conflict after 2 seconds
   useEffect(() => {
     if (!conflict) return;
     const timer = setTimeout(() => setConflict(null), 2000);

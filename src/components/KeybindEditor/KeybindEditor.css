@@ -27,6 +27,75 @@
   border-color: var(--danger);
 }
 
+.clear-all-wrapper {
+  position: relative;
+}
+
+.clear-confirm {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  background: #1c1f26;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  min-width: 170px;
+  animation: conflictFadeIn 0.12s ease-out;
+}
+
+.clear-confirm::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  background: #1c1f26;
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  transform: rotate(45deg);
+}
+
+.clear-confirm-text {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text);
+  margin-bottom: 0.45rem;
+}
+
+.clear-confirm-actions {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.clear-confirm-cancel,
+.clear-confirm-do {
+  font-size: 0.6875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.clear-confirm-cancel:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.clear-confirm-do {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.clear-confirm-do:hover {
+  background: rgba(248, 81, 73, 0.12);
+}
+
 /* ── Grid Layout ── */
 .editor-grid {
   display: flex;
@@ -129,6 +198,7 @@
   cursor: pointer;
   transition: background 0.12s;
   user-select: none;
+  position: relative;
 }
 
 .action-row:last-child {
@@ -142,12 +212,6 @@
 .action-row.capturing {
   background: rgba(88, 166, 255, 0.08);
   outline: 1px solid var(--accent);
-  outline-offset: -1px;
-}
-
-.action-row.conflict {
-  background: rgba(248, 81, 73, 0.08);
-  outline: 1px solid var(--danger);
   outline-offset: -1px;
 }
 
@@ -173,14 +237,59 @@
   gap: 0.25rem;
 }
 
-/* ── Conflict Warning ── */
-.conflict-warn {
-  font-size: 0.625rem;
+/* ── Conflict Popup ── */
+.conflict-popup {
+  position: absolute;
+  top: 100%;
+  left: 0.75rem;
+  z-index: 20;
+  background: #1c1f26;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.6rem;
+  pointer-events: none;
+  animation: conflictFadeIn 0.15s ease-out;
+  margin-top: 2px;
+}
+
+.conflict-popup::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 12px;
+  width: 8px;
+  height: 8px;
+  background: #1c1f26;
+  border-left: 1px solid var(--danger);
+  border-top: 1px solid var(--danger);
+  transform: rotate(45deg);
+}
+
+.conflict-popup-text {
+  font-size: 0.6875rem;
   color: var(--danger);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  font-weight: 600;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.conflict-popup-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+@keyframes conflictFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Clear Button ── */

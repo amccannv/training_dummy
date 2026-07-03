@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Rotation, TickEvent, PrayerFlickSettings, PrayerAttack, AttackStyle } from '../types';
 import { abilityDuration, compileEndTick } from '../utils/compiler';
+import { getActionById } from '../data/actions';
 import { setItem } from '../utils/storage';
 import { keybindEquals } from '../utils/keybindFormat';
 
@@ -252,7 +253,8 @@ export const usePracticeStore = create<PracticeStore>()((set, get) => ({
     for (let i = 0; i < events.length; i++) {
       if (events[i].resolved) continue;
       if (tick > events[i].tick) {
-        events[i] = { ...events[i], resolved: true, result: 'miss' };
+        const def = getActionById(events[i].abilityId);
+        events[i] = { ...events[i], resolved: true, result: def?.isAuto ? 'hit' : 'miss' };
         abilityChanged = true;
       }
     }

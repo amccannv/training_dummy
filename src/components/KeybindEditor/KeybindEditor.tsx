@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import type { ActionCategory, Keybind } from '../../types';
 import { actions } from '../../data/actions';
 import { useKeybindStore } from '../../store/keybindStore';
@@ -14,6 +14,7 @@ const CATEGORY_ORDER: ActionCategory[] = [
   'necro:basic', 'necro:threshold', 'necro:ultimate',
   'constitution:basic', 'constitution:threshold', 'constitution:special', 'constitution:ultimate',
   'defence:basic', 'defence:threshold', 'defence:ultimate',
+  'items:consume', 'items:equipment', 'items:target',
   'utility', 'prayer',
 ];
 
@@ -37,6 +38,9 @@ const CATEGORY_LABELS: Record<ActionCategory, string> = {
   'defence:basic': 'Basic',
   'defence:threshold': 'Threshold',
   'defence:ultimate': 'Ultimate',
+  'items:consume': 'Consumables',
+  'items:equipment': 'Equipment',
+  'items:target': 'Target',
   'utility': 'Utility',
   'prayer': 'Prayers',
 };
@@ -56,6 +60,7 @@ const TOP_GROUPS: StyleGroup[] = [
 const BOTTOM_GROUPS: StyleGroup[] = [
   { label: 'Constitution', categories: ['constitution:basic', 'constitution:threshold', 'constitution:special', 'constitution:ultimate'] },
   { label: 'Defensives', categories: ['defence:basic', 'defence:threshold', 'defence:ultimate'] },
+  { label: 'Items', categories: ['items:consume', 'items:equipment', 'items:target'] },
   { label: 'Prayers', categories: ['prayer'] },
   { label: 'Utility', categories: ['utility'] },
 ];
@@ -86,10 +91,23 @@ function groupByCategory() {
 export default function KeybindEditor() {
   const groups = useMemo(() => groupByCategory(), []);
   const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsed);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const clearAll = useKeybindStore((s) => s.clearAll);
   const bindings = useKeybindStore((s) => s.bindings);
   const setBinding = useKeybindStore((s) => s.setBinding);
   const { capturingActionId, conflict, startCapture, activeModifierCode, pressedKeys } = useKeybindCapture();
+  const clearAllRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showClearConfirm) return;
+    const onDocumentClick = (e: MouseEvent) => {
+      if (clearAllRef.current && !clearAllRef.current.contains(e.target as Node)) {
+        setShowClearConfirm(false);
+      }
+    };
+    document.addEventListener('click', onDocumentClick, true);
+    return () => document.removeEventListener('click', onDocumentClick, true);
+  }, [showClearConfirm]);
 
   useEffect(() => {
     localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify([...collapsed]));
@@ -179,9 +197,30 @@ export default function KeybindEditor() {
     <div className="keybind-editor">
       <div className="editor-header">
         <h2>Keybind Editor</h2>
-        <button className="btn-clear-all" onClick={clearAll}>
-          Clear All
-        </button>
+        <div className="clear-all-wrapper" ref={clearAllRef}>
+          <button className="btn-clear-all" onClick={() => setShowClearConfirm(true)}>
+            Clear All
+          </button>
+          {showClearConfirm && (
+            <div className="clear-confirm">
+              <span className="clear-confirm-text">Clear all keybinds?</span>
+              <div className="clear-confirm-actions">
+                <button
+                  className="clear-confirm-cancel"
+                  onClick={() => setShowClearConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="clear-confirm-do"
+                  onClick={() => { clearAll(); setShowClearConfirm(false); }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="editor-grid">

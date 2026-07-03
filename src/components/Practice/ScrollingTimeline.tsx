@@ -118,7 +118,7 @@ function computeCards(
       state,
       icon: def?.iconUrl,
       name: def?.name ?? aId,
-      keyLabel: kb ? formatKeybind(kb) : '',
+      keyLabel: kb ? formatKeybind(kb) : def?.isAuto ? 'AUTO' : '',
       opacity,
     });
   }

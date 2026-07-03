@@ -419,4 +419,126 @@
   font-weight: 500;
 }
 
+/* ── Rotation Selector ── */
+.rotation-selector {
+  width: 100%;
+  max-width: 36rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: left;
+}
+
+.rotation-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.rotation-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rotation-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.rotation-card:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.rotation-card-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.rotation-card-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.rotation-card-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.rotation-card-btn {
+  font-size: 0.6875rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.rotation-card-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.rotation-card-btn-danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.rotation-card-btn-danger:hover {
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.rotation-no-user {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.rotation-selected-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.rotation-back-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  font-family: var(--font);
+  flex-shrink: 0;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.rotation-back-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.practice-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  flex: 1;
+}
+
 

@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { usePracticeStore } from '../../store/practiceStore';
 import { useKeybindStore } from '../../store/keybindStore';
 import { rotations } from '../../data/rotations';
-import { actions } from '../../data/actions';
+import { actions, getActionById } from '../../data/actions';
 import { compileTicks } from '../../utils/compiler';
+import { getUserRotations, deleteUserRotation } from '../../utils/storage';
 import { usePracticeInput } from '../../hooks/usePracticeInput';
-import { playCompleteSound } from '../../utils/audio';
-import type { ActivationEvent, AttackStyle, PrayerFlickSettings } from '../../types';
+import { playCompleteSound, playAbilitySound } from '../../utils/audio';
+import type { ActivationEvent, AttackStyle, PrayerFlickSettings, TickEvent, Rotation } from '../../types';
 import PracticeTimer from './PracticeTimer';
 import ScrollingTimeline from './ScrollingTimeline';
 import ChannelBar from './ChannelBar';
@@ -146,7 +147,11 @@ function PrayerIndicator({ activePrayer }: { activePrayer: string }) {
   );
 }
 
-export default function PracticeView() {
+interface PracticeViewProps {
+  onNavigateBuilder: (rotation: Rotation) => void;
+}
+
+export default function PracticeView({ onNavigateBuilder }: PracticeViewProps) {
   const rotation = usePracticeStore((s) => s.rotation);
   const sessionActive = usePracticeStore((s) => s.sessionActive);
   const events = usePracticeStore((s) => s.events);
@@ -166,28 +171,33 @@ export default function PracticeView() {
   const bindings = useKeybindStore((s) => s.bindings);
   const { feedback, pressedKeys, activeModifierCode } = usePracticeInput();
 
-  const defaultRotation = rotations[0];
+  const [selectedRotation, setSelectedRotation] = useState<Rotation | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const userRotations = useMemo(() => getUserRotations(), [refreshKey]);
+
+  const activeRotation = rotation ?? selectedRotation;
   const totalMs = useMemo(() => {
-    if (!defaultRotation) return 0;
-    const ticks = compileTicks(defaultRotation);
+    if (!activeRotation) return 0;
+    const ticks = compileTicks(activeRotation);
     if (ticks.length === 0) return 0;
     return (ticks[ticks.length - 1] + 2) * TICK_MS;
-  }, [defaultRotation]);
+  }, [activeRotation]);
 
   const hasAnyBindings = useMemo(
-    () =>
-      defaultRotation.abilities.some((aId) => bindings[aId] !== null),
-    [bindings],
+    () => activeRotation?.abilities.some((aId) => bindings[aId] !== null) ?? false,
+    [bindings, activeRotation],
   );
 
   const unboundInRotation = useMemo(() => {
-    if (!defaultRotation) return 0;
+    if (!activeRotation) return 0;
     let count = 0;
-    for (const aId of defaultRotation.abilities) {
+    for (const aId of activeRotation.abilities) {
       if (bindings[aId] === null) count++;
     }
     return count;
-  }, [bindings]);
+  }, [bindings, activeRotation]);
 
   const activationEvents = useMemo(
     () =>
@@ -248,6 +258,25 @@ export default function PracticeView() {
     return () => clearInterval(interval);
   }, [sessionActive]);
 
+  const prevEventsRef = useRef<TickEvent[]>([]);
+
+  useEffect(() => {
+    if (!sessionActive) {
+      prevEventsRef.current = [];
+      return;
+    }
+    const prev = prevEventsRef.current;
+    for (let i = 0; i < events.length; i++) {
+      if (events[i].resolved && events[i].result === 'hit' && !prev[i]?.resolved) {
+        const def = getActionById(events[i].abilityId);
+        if (def?.isAuto && def?.soundUrl) {
+          playAbilitySound(def.soundUrl);
+        }
+      }
+    }
+    prevEventsRef.current = events;
+  }, [events, sessionActive]);
+
   useEffect(() => {
     if (!sessionActive && rotation && events.length > 0) {
       playCompleteSound();
@@ -255,11 +284,140 @@ export default function PracticeView() {
   }, [sessionActive, rotation, events.length]);
 
   if (!rotation && !sessionActive) {
+    if (!selectedRotation) {
+      return (
+        <div className="practice-start">
+          <h2 className="practice-title">Select a Rotation</h2>
+
+          <div className="rotation-selector">
+            <div className="rotation-section">
+              <h3 className="rotation-section-title">Built-in Rotations</h3>
+              <div className="rotation-cards">
+                {rotations.map((r) => (
+                  <div
+                    key={r.id}
+                    className="rotation-card"
+                    onClick={() => setSelectedRotation(r)}
+                  >
+                    <div className="rotation-card-name">{r.name}</div>
+                    <div className="rotation-card-meta">
+                      {r.abilities.length} abilities &middot;{' '}
+                      {((compileTicks(r)[compileTicks(r).length - 1] + 2) * TICK_MS / 1000).toFixed(1)}s
+                    </div>
+                    <div className="rotation-card-actions">
+                      <button
+                        className="rotation-card-btn"
+                        onClick={(e) => { e.stopPropagation(); setSelectedRotation(r); }}
+                        type="button"
+                      >
+                        Select
+                      </button>
+                      <button
+                        className="rotation-card-btn"
+                        onClick={(e) => { e.stopPropagation(); onNavigateBuilder(r); }}
+                        type="button"
+                      >
+                        Copy to Builder
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {userRotations.length > 0 && (
+              <div className="rotation-section">
+                <h3 className="rotation-section-title">My Rotations</h3>
+                <div className="rotation-cards">
+                  {userRotations.map((r) => (
+                    <div
+                      key={r.id}
+                      className="rotation-card"
+                      onClick={() => setSelectedRotation(r)}
+                    >
+                      <div className="rotation-card-name">{r.name}</div>
+                      <div className="rotation-card-meta">
+                        {r.abilities.length} abilities &middot;{' '}
+                        {((compileTicks(r)[compileTicks(r).length - 1] + 2) * TICK_MS / 1000).toFixed(1)}s
+                      </div>
+                      <div className="rotation-card-actions">
+                        <button
+                          className="rotation-card-btn"
+                          onClick={(e) => { e.stopPropagation(); setSelectedRotation(r); }}
+                          type="button"
+                        >
+                          Select
+                        </button>
+                        <button
+                          className="rotation-card-btn"
+                          onClick={(e) => { e.stopPropagation(); onNavigateBuilder(r); }}
+                          type="button"
+                        >
+                          Edit in Builder
+                        </button>
+                        {showDeleteConfirm === r.id ? (
+                          <>
+                            <button
+                              className="rotation-card-btn rotation-card-btn-danger"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteUserRotation(r.id);
+                                setShowDeleteConfirm(null);
+                                setRefreshKey((k) => k + 1);
+                              }}
+                              type="button"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              className="rotation-card-btn"
+                              onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(null); }}
+                              type="button"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="rotation-card-btn"
+                            onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(r.id); }}
+                            type="button"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {userRotations.length === 0 && (
+              <p className="rotation-no-user">
+                Create your own rotations in the{' '}
+                <span className="link-like">Builder</span> tab.
+              </p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="practice-start">
-        <h2 className="practice-title">{defaultRotation.name}</h2>
+        <div className="rotation-selected-header">
+          <button
+            className="rotation-back-btn"
+            onClick={() => setSelectedRotation(null)}
+            type="button"
+          >
+            &larr; Back
+          </button>
+          <h2 className="practice-title">{selectedRotation.name}</h2>
+        </div>
         <p className="practice-desc">
-          {defaultRotation.abilities.length} actions &middot;{' '}
+          {selectedRotation.abilities.length} actions &middot;{' '}
           {(totalMs / 1000).toFixed(1)}s est. duration
         </p>
 
@@ -291,7 +449,7 @@ export default function PracticeView() {
 
             <button
               className="btn-primary btn-start"
-              onClick={() => startPractice(defaultRotation)}
+              onClick={() => startPractice(selectedRotation)}
             >
               Start Practice
             </button>
@@ -307,7 +465,7 @@ export default function PracticeView() {
         rotationName={rotation.name}
         events={events}
         wrongPresses={wrongPresses}
-        onPracticeAgain={() => startPractice(defaultRotation)}
+        onPracticeAgain={() => startPractice(rotation)}
         onReset={reset}
         prayerStats={flickSettings.enabled ? {
           hits: prayerHits,

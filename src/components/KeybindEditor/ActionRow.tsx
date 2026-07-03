@@ -1,7 +1,7 @@
 import type { ActionDefinition } from '../../types';
 import { useKeybindStore } from '../../store/keybindStore';
-import KeyDisplay from '../shared/KeyDisplay';
 import type { ConflictInfo } from '../../hooks/useKeybindCapture';
+import KeyDisplay from '../shared/KeyDisplay';
 
 interface ActionRowProps {
   action: ActionDefinition;
@@ -19,11 +19,8 @@ export default function ActionRow({
   const binding = useKeybindStore((s) => s.bindings[action.id]);
   const clearBinding = useKeybindStore((s) => s.clearBinding);
 
-  const isConflicted = conflict?.actionId === action.id;
-
   let className = 'action-row';
   if (isCapturing) className += ' capturing';
-  if (isConflicted) className += ' conflict';
 
   return (
     <div className={className}>
@@ -34,11 +31,19 @@ export default function ActionRow({
         {action.name}
       </span>
 
-      <div className="action-controls">
-        {isConflicted && (
-          <span className="conflict-warn">Already bound</span>
-        )}
+      {isCapturing && conflict && (
+        <div className="conflict-popup">
+          <span className="conflict-popup-text">
+            {conflict.keybind} is already bound by{' '}
+            {conflict.conflictIconUrl && (
+              <img className="conflict-popup-icon" src={conflict.conflictIconUrl} alt="" />
+            )}
+            {conflict.conflictName}
+          </span>
+        </div>
+      )}
 
+      <div className="action-controls">
         {binding && !isCapturing && (
           <button
             className="action-clear"

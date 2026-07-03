@@ -5,7 +5,8 @@ export type ActionCategory =
   | 'ranged:basic' | 'ranged:threshold' | 'ranged:ultimate'
   | 'constitution:basic' | 'constitution:threshold' | 'constitution:special' | 'constitution:ultimate'
   | 'defence:basic' | 'defence:threshold' | 'defence:ultimate'
-  | 'utility' | 'prayer';
+  | 'utility' | 'prayer'
+  | 'items:consume' | 'items:equipment' | 'items:target';
 
 export interface Keybind {
   code: string;
@@ -21,6 +22,7 @@ export interface ActionDefinition {
   category: ActionCategory;
   durationTicks: number;
   isChanneled: boolean;
+  isAuto?: boolean;
   iconUrl?: string;
   soundUrl?: string;
 }
@@ -29,6 +31,7 @@ export interface Rotation {
   id: string;
   name: string;
   abilities: string[];
+  offGcdActions?: Record<number, string[]>;
 }
 
 export interface TickEvent {
@@ -101,4 +104,9 @@ export interface StoredKeybinds {
 export interface StoredSessions {
   version: 2;
   sessions: TimedSession[];
+}
+
+export interface StoredUserRotations {
+  version: 1;
+  rotations: Rotation[];
 }
