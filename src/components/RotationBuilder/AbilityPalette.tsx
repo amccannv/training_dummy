@@ -10,7 +10,7 @@ const CATEGORY_ORDER: ActionCategory[] = [
   'necro:basic', 'necro:threshold', 'necro:ultimate',
   'constitution:basic', 'constitution:threshold', 'constitution:special', 'constitution:ultimate',
   'defence:basic', 'defence:threshold', 'defence:ultimate',
-  'items:consume', 'items:equipment', 'items:target',
+  'items:consume', 'items:equipment',
   'utility', 'prayer',
 ];
 
@@ -21,7 +21,7 @@ const CATEGORY_LABELS: Record<ActionCategory, string> = {
   'necro:basic': 'Basic', 'necro:threshold': 'Threshold', 'necro:ultimate': 'Ultimate',
   'constitution:basic': 'Basic', 'constitution:threshold': 'Threshold', 'constitution:special': 'Special', 'constitution:ultimate': 'Ultimate',
   'defence:basic': 'Basic', 'defence:threshold': 'Threshold', 'defence:ultimate': 'Ultimate',
-  'items:consume': 'Consumables', 'items:equipment': 'Equipment', 'items:target': 'Target',
+  'items:consume': 'Consumables', 'items:equipment': 'Equipment',
   'utility': 'Utility', 'prayer': 'Prayers',
 };
 
@@ -32,7 +32,7 @@ const GROUP_DEFS: { label: string; categories: ActionCategory[] }[] = [
   { label: 'Necromancy', categories: ['necro:basic', 'necro:threshold', 'necro:ultimate'] },
   { label: 'Constitution', categories: ['constitution:basic', 'constitution:threshold', 'constitution:special', 'constitution:ultimate'] },
   { label: 'Defensives', categories: ['defence:basic', 'defence:threshold', 'defence:ultimate'] },
-  { label: 'Items', categories: ['items:consume', 'items:equipment', 'items:target'] },
+  { label: 'Items', categories: ['items:consume', 'items:equipment'] },
   { label: 'Utility', categories: ['utility'] },
 ];
 

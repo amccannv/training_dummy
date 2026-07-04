@@ -105,14 +105,12 @@
 .tl-card.hit {
   border-color: var(--success);
   background: rgba(63, 185, 80, 0.12);
-  animation: tlCardDone 0.35s ease-out forwards;
   z-index: 6;
 }
 
 .tl-card.missed {
   border-color: var(--danger);
   background: rgba(248, 81, 73, 0.1);
-  animation: tlCardDone 0.35s ease-out forwards;
   z-index: 6;
 }
 
@@ -150,9 +148,4 @@
 @keyframes tlCardActive {
   0%, 100% { box-shadow: 0 0 8px rgba(88, 166, 255, 0.25); }
   50% { box-shadow: 0 0 16px rgba(88, 166, 255, 0.5); }
-}
-
-@keyframes tlCardDone {
-  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
 }

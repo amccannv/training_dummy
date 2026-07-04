@@ -144,15 +144,15 @@ export const actions: ActionDefinition[] = [
   { id: 'DeflectNecromancy', name: 'Deflect Necromancy', category: 'prayer', durationTicks: 0, isChanneled: false, iconUrl: icon('DeflectNecromancy'), soundUrl: sound('DeflectNecromancy') },
 
   // ── Items: Consumables ──
-  { id: 'VulnBomb', name: 'Vuln Bomb', category: 'items:consume', durationTicks: 0, isChanneled: false },
-  { id: 'AdrenalineRenewal', name: 'Adrenaline Renewal', category: 'items:consume', durationTicks: 0, isChanneled: false },
+  { id: 'VulnBomb', name: 'Vuln Bomb', category: 'items:consume', durationTicks: 0, isChanneled: false, iconUrl: icon('VulnBomb') },
+  { id: 'AdrenalineRenewal', name: 'Adrenaline Renewal', category: 'items:consume', durationTicks: 0, isChanneled: false, iconUrl: icon('AdrenalineRenewal') },
 
   // ── Items: Equipment ──
   { id: 'EofSwap', name: 'EOF Swap', category: 'items:equipment', durationTicks: 0, isChanneled: false },
   { id: 'AmmoSwap', name: 'Ammo Swap', category: 'items:equipment', durationTicks: 0, isChanneled: false },
 
-  // ── Items: Target ──
-  { id: 'TargetCycle', name: 'Target Cycle', category: 'items:target', durationTicks: 0, isChanneled: false },
+  // ── Utility extras ──
+  { id: 'TargetCycle', name: 'Target Cycle', category: 'utility', durationTicks: 0, isChanneled: false, iconUrl: icon('tc') },
 ];
 
 export function getActionById(id: string): ActionDefinition | undefined {

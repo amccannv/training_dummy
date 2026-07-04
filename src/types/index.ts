@@ -6,7 +6,7 @@ export type ActionCategory =
   | 'constitution:basic' | 'constitution:threshold' | 'constitution:special' | 'constitution:ultimate'
   | 'defence:basic' | 'defence:threshold' | 'defence:ultimate'
   | 'utility' | 'prayer'
-  | 'items:consume' | 'items:equipment' | 'items:target';
+  | 'items:consume' | 'items:equipment';
 
 export interface Keybind {
   code: string;

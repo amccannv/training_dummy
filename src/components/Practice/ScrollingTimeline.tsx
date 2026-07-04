@@ -11,7 +11,6 @@ const PX_PER_MS = PX_PER_TICK / 600;
 const TICK_MS = 600;
 const CARD_HALF = 26;
 const PREVIEW_AHEAD_MS = 30000;
-const PREVIEW_BEHIND_MS = 4000;
 const FADE_RAMP_MS = 4000;
 
 interface CardData {
@@ -29,6 +28,7 @@ interface CardData {
 interface LineData {
   x: number;
   tickNum: number;
+  opacity: number;
 }
 
 interface ScrollingTimelineProps {
@@ -62,13 +62,22 @@ function deflectName(style: string): string {
 
 function computeLines(elapsed: number, hitX: number, width: number): LineData[] {
   const lines: LineData[] = [];
-  const startTick = Math.floor(Math.max(0, elapsed - 2000) / TICK_MS);
+  const pxBehind = hitX + 10;
+  const msBehind = pxBehind / PX_PER_MS;
+  const ticksBehind = Math.ceil(msBehind / TICK_MS) + 1;
+  const startTick = Math.max(0, Math.floor(elapsed / TICK_MS) - ticksBehind);
   const endTick = Math.ceil((elapsed + PREVIEW_AHEAD_MS + 2000) / TICK_MS);
 
   for (let t = startTick; t <= endTick; t++) {
     const x = hitX + (t * TICK_MS - elapsed) * PX_PER_MS;
     if (x < -10 || x > width + 10) continue;
-    lines.push({ x, tickNum: t });
+
+    const diff = t * TICK_MS - elapsed;
+    const absDist = Math.abs(diff);
+    const fade = Math.max(0, Math.min(1, 1 - absDist / FADE_RAMP_MS));
+    const opacity = 0.25 + 0.35 * fade;
+
+    lines.push({ x, tickNum: t, opacity });
   }
 
   return lines;
@@ -87,7 +96,7 @@ function computeCards(
   for (const event of events) {
     const targetMs = (event.tick + 0.5) * TICK_MS;
     const diff = targetMs - elapsed;
-    if (diff > PREVIEW_AHEAD_MS || diff < -PREVIEW_BEHIND_MS) continue;
+    if (diff > PREVIEW_AHEAD_MS) continue;
 
     const x = hitX + diff * PX_PER_MS;
     if (x < -CARD_HALF * 3 || x > width + CARD_HALF * 2) continue;
@@ -104,11 +113,9 @@ function computeCards(
     else if (diff <= 0 && diff > -TICK_MS) state = 'active';
     else if (diff < TICK_MS && diff > 0) state = 'approaching';
 
-    let opacity = 1;
-    if (state === 'pending') {
-      const t = Math.max(0, Math.min(1, 1 - diff / FADE_RAMP_MS));
-      opacity = 0.6 + 0.4 * t;
-    }
+    const absDist = Math.abs(diff);
+    const fade = Math.max(0, Math.min(1, 1 - absDist / FADE_RAMP_MS));
+    const opacity = 0.35 + 0.65 * fade;
 
     cards.push({
       id: `${aId}-${event.tick}`,
@@ -140,7 +147,7 @@ function computeAttackCards(
   for (const attack of attacks) {
     const targetMs = (attack.tick + 0.5) * TICK_MS;
     const diff = targetMs - elapsed;
-    if (diff > PREVIEW_AHEAD_MS || diff < -PREVIEW_BEHIND_MS) continue;
+    if (diff > PREVIEW_AHEAD_MS) continue;
 
     const x = hitX + diff * PX_PER_MS;
     if (x < -CARD_HALF * 3 || x > width + CARD_HALF * 2) continue;
@@ -170,11 +177,9 @@ function computeAttackCards(
       state = 'active';
     }
 
-    let opacity = 1;
-    if (state === 'pending') {
-      const t = Math.max(0, Math.min(1, 1 - diff / FADE_RAMP_MS));
-      opacity = 0.3 + 0.7 * t;
-    }
+    const absDist = Math.abs(diff);
+    const fade = Math.max(0, Math.min(1, 1 - absDist / FADE_RAMP_MS));
+    const opacity = 0.35 + 0.65 * fade;
 
     cards.push({
       id: `attack-${attack.tick}`,
@@ -246,21 +251,25 @@ export default function ScrollingTimeline({
 
   return (
     <div className={`scrolling-timeline ${hasAttacks ? 'has-attacks' : ''}`} ref={containerRef}>
-      {lines.map((line, i) => (
-        <div
-          key={i}
-          className="tl-grid"
-          style={{ left: line.x }}
-        />
-      ))}
+      {lines.map((line) => {
+        const gridX = Math.round(hitX + (line.tickNum * TICK_MS - elapsed) * PX_PER_MS);
+        return (
+          <div
+            key={`grid-${line.tickNum}`}
+            className="tl-grid"
+            style={{ left: 0, transform: `translateX(${gridX}px)`, opacity: line.opacity }}
+          />
+        );
+      })}
 
       {lines.slice(0, -1).map((line, i) => {
-        const labelX = (line.x + lines[i + 1].x) / 2;
+        const nextLine = lines[i + 1];
+        const labelX = Math.round(hitX + ((line.tickNum + nextLine.tickNum) / 2 * TICK_MS - elapsed) * PX_PER_MS);
         return (
           <span
             key={`tick-${line.tickNum}`}
             className="tl-tick-label"
-            style={{ left: labelX }}
+            style={{ left: 0, transform: `translateX(${labelX}px) translateX(-50%)`, opacity: line.opacity }}
           >
             {line.tickNum}
           </span>
